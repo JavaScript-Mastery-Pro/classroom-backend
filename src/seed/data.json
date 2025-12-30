@@ -1,0 +1,181 @@
+{
+  "departments": [
+    {
+      "code": "CS",
+      "name": "Computer Science",
+      "description": "Core computing curriculum"
+    },
+    {
+      "code": "MATH",
+      "name": "Mathematics",
+      "description": "Pure and applied math"
+    },
+    {
+      "code": "ENG",
+      "name": "English",
+      "description": "Literature and composition"
+    },
+    {
+      "code": "PHY",
+      "name": "Physics",
+      "description": "Classical and modern physics"
+    }
+  ],
+  "subjects": [
+    {
+      "code": "CS101",
+      "name": "Intro to Programming",
+      "description": "Programming fundamentals",
+      "departmentCode": "CS"
+    },
+    {
+      "code": "MATH201",
+      "name": "Linear Algebra",
+      "description": "Vectors and matrices",
+      "departmentCode": "MATH"
+    },
+    {
+      "code": "ENG110",
+      "name": "Composition I",
+      "description": "Academic writing essentials",
+      "departmentCode": "ENG"
+    },
+    {
+      "code": "PHY150",
+      "name": "General Physics",
+      "description": "Mechanics and thermodynamics",
+      "departmentCode": "PHY"
+    }
+  ],
+  "users": [
+    {
+      "id": "user_admin_1",
+      "name": "Admin User",
+      "email": "admin@classroom.test",
+      "emailVerified": true,
+      "role": "admin"
+    },
+    {
+      "id": "user_teacher_1",
+      "name": "Teacher One",
+      "email": "teacher1@classroom.test",
+      "emailVerified": true,
+      "role": "teacher"
+    },
+    {
+      "id": "user_teacher_2",
+      "name": "Teacher Two",
+      "email": "teacher2@classroom.test",
+      "emailVerified": true,
+      "role": "teacher"
+    },
+    {
+      "id": "user_student_1",
+      "name": "Student One",
+      "email": "student1@classroom.test",
+      "emailVerified": true,
+      "role": "student"
+    },
+    {
+      "id": "user_student_2",
+      "name": "Student Two",
+      "email": "student2@classroom.test",
+      "emailVerified": true,
+      "role": "student"
+    }
+  ],
+  "classes": [
+    {
+      "name": "CS101 - Section A",
+      "inviteCode": "CS101A",
+      "subjectCode": "CS101",
+      "teacherId": "user_teacher_1",
+      "description": "Morning section",
+      "capacity": 35,
+      "status": "active",
+      "schedules": [
+        {
+          "day": "Mon",
+          "startTime": "09:00",
+          "endTime": "10:30"
+        },
+        {
+          "day": "Wed",
+          "startTime": "09:00",
+          "endTime": "10:30"
+        }
+      ]
+    },
+    {
+      "name": "CS101 - Section B",
+      "inviteCode": "CS101B",
+      "subjectCode": "CS101",
+      "teacherId": "user_teacher_2",
+      "description": "Afternoon section",
+      "capacity": 40,
+      "status": "active",
+      "schedules": [
+        {
+          "day": "Tue",
+          "startTime": "14:00",
+          "endTime": "15:30"
+        },
+        {
+          "day": "Thu",
+          "startTime": "14:00",
+          "endTime": "15:30"
+        }
+      ]
+    },
+    {
+      "name": "MATH201 - Section A",
+      "inviteCode": "M201A",
+      "subjectCode": "MATH201",
+      "teacherId": "user_teacher_1",
+      "description": "Evening section",
+      "capacity": 30,
+      "status": "active",
+      "schedules": [
+        {
+          "day": "Mon",
+          "startTime": "17:00",
+          "endTime": "18:30"
+        }
+      ]
+    },
+    {
+      "name": "ENG110 - Section A",
+      "inviteCode": "ENG110A",
+      "subjectCode": "ENG110",
+      "teacherId": "user_teacher_2",
+      "description": "Writing workshop",
+      "capacity": 25,
+      "status": "active",
+      "schedules": [
+        {
+          "day": "Wed",
+          "startTime": "11:00",
+          "endTime": "12:30"
+        }
+      ]
+    }
+  ],
+  "enrollments": [
+    {
+      "classInviteCode": "CS101A",
+      "studentId": "user_student_1"
+    },
+    {
+      "classInviteCode": "CS101B",
+      "studentId": "user_student_2"
+    },
+    {
+      "classInviteCode": "M201A",
+      "studentId": "user_student_1"
+    },
+    {
+      "classInviteCode": "ENG110A",
+      "studentId": "user_student_2"
+    }
+  ]
+}
