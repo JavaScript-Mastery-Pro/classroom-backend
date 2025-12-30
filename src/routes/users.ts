@@ -135,32 +135,47 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     const { id: userId } = parseRequest(userIdParamSchema, req.params);
-    const payload = parseRequest(userUpdateSchema, req.body);
+    const { name, email, image, imageCldPubId, role } = parseRequest(
+      userUpdateSchema,
+      req.body
+    );
 
     const existingUser = await getUserById(userId);
-    if (!existingUser) {
+    if (!existingUser)
       return res
         .status(404)
         .json({ error: "User not found", message: "User not found" });
-    }
 
-    if (payload.email) {
+    if (email) {
       const [existingEmail] = await db
         .select({ id: user.id })
         .from(user)
-        .where(and(eq(user.email, payload.email), ne(user.id, userId)));
+        .where(and(eq(user.email, email), ne(user.id, userId)));
 
-      if (existingEmail) {
+      if (existingEmail)
         return res.status(409).json({
           error: "Email already exists",
           message: "Email already exists",
         });
+    }
+
+    const updateValues: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries({
+      name,
+      email,
+      image,
+      imageCldPubId,
+      role,
+    })) {
+      if (value) {
+        updateValues[key] = value;
       }
     }
 
     const [updatedUser] = await db
       .update(user)
-      .set(payload)
+      .set(updateValues)
       .where(eq(user.id, userId))
       .returning();
 
@@ -190,11 +205,10 @@ router.delete("/:id", async (req, res) => {
       .where(eq(user.id, userId))
       .returning();
 
-    if (!deletedUser) {
+    if (!deletedUser)
       return res
         .status(404)
         .json({ error: "User not found", message: "User not found" });
-    }
 
     res.status(200).json({
       data: deletedUser,

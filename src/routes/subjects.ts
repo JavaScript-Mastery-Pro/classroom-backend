@@ -175,8 +175,6 @@ router.put("/:id", async (req, res) => {
       updateValues.departmentId = departmentId;
     }
 
-    if (name) updateValues.name = name;
-
     if (code) {
       const [existingSubjectWithCode] = await db
         .select({ id: subjects.id })
@@ -189,7 +187,9 @@ router.put("/:id", async (req, res) => {
       updateValues.code = code;
     }
 
-    if (description) updateValues.description = description;
+    for (const [key, value] of Object.entries({ name, description })) {
+      if (value) updateValues[key] = value;
+    }
 
     await db
       .update(subjects)
@@ -215,9 +215,8 @@ router.delete("/:id", async (req, res) => {
       .where(eq(subjects.id, subjectId))
       .returning({ id: subjects.id });
 
-    if (deletedRows.length === 0) {
+    if (deletedRows.length === 0)
       return res.status(404).json({ error: "Subject not found" });
-    }
 
     res.status(200).json({ message: "Subject deleted" });
   } catch (error) {

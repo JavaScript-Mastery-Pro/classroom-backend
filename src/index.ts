@@ -6,6 +6,8 @@ import { auth } from "./lib/auth";
 
 import subjectsRouter from "./routes/subjects";
 import usersRouter from "./routes/users";
+import classesRouter from "./routes/classes";
+import enrollmentsRouter from "./routes/enrollments";
 
 const app = express();
 const PORT = 8000;
@@ -24,6 +26,8 @@ app.all("/api/auth/{*any}", toNodeHandler(auth));
 
 app.use("/api/users", usersRouter);
 app.use("/api/subjects", subjectsRouter);
+app.use("/api/classes", classesRouter);
+app.use("/api/enrollments", enrollmentsRouter);
 
 app.get("/", (req, res) => {
   res.send("Backend server is running!");
