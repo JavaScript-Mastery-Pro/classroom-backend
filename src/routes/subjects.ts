@@ -1,8 +1,25 @@
 import express from "express";
-import { eq, ilike, or, and, desc, sql, getTableColumns } from "drizzle-orm";
+import {
+  eq,
+  ilike,
+  or,
+  and,
+  desc,
+  sql,
+  getTableColumns,
+  ne,
+} from "drizzle-orm";
 
 import { db } from "../db";
 import { departments, subjects } from "../db/schema";
+import {
+  subjectCreateSchema,
+  subjectIdParamSchema,
+  subjectUpdateSchema,
+} from "../validation/subjects";
+import { getSubjectById } from "../controllers/subjects";
+import { getDepartmentById } from "../controllers/departments";
+import { parseRequest } from "../lib/validation";
 
 const router = express.Router();
 
@@ -69,6 +86,143 @@ router.get("/", async (req, res) => {
   } catch (error) {
     console.error("GET /subjects error:", error);
     res.status(500).json({ error: "Failed to fetch subjects" });
+  }
+});
+
+// Get a single subject by ID
+router.get("/:id", async (req, res) => {
+  try {
+    const { id: subjectId } = parseRequest(subjectIdParamSchema, req.params);
+
+    const subject = await getSubjectById(subjectId);
+
+    if (!subject) {
+      return res.status(404).json({ error: "Subject not found" });
+    }
+
+    res.status(200).json({ data: subject });
+  } catch (error) {
+    console.error("GET /subjects/:id error:", error);
+    res.status(500).json({ error: "Failed to fetch subject" });
+  }
+});
+
+// Create a new subject
+router.post("/", async (req, res) => {
+  try {
+    const { departmentId, name, code, description } = parseRequest(
+      subjectCreateSchema,
+      req.body
+    );
+
+    const department = await getDepartmentById(departmentId);
+
+    if (!department)
+      return res.status(404).json({ error: "Department not found" });
+
+    const [existingSubject] = await db
+      .select({ id: subjects.id })
+      .from(subjects)
+      .where(eq(subjects.code, code));
+
+    if (existingSubject)
+      return res.status(409).json({ error: "Subject code already exists" });
+
+    const [createdSubject] = await db
+      .insert(subjects)
+      .values({
+        departmentId,
+        name,
+        code,
+        description: description ?? null,
+      })
+      .returning({ id: subjects.id });
+
+    if (!createdSubject)
+      return res.status(500).json({ error: "Failed to create subject" });
+
+    const subject = await getSubjectById(createdSubject.id);
+
+    res.status(201).json({ data: subject });
+  } catch (error) {
+    console.error("POST /subjects error:", error);
+    res.status(500).json({ error: "Failed to create subject" });
+  }
+});
+
+// Update a subject by ID
+router.put("/:id", async (req, res) => {
+  try {
+    const { id: subjectId } = parseRequest(subjectIdParamSchema, req.params);
+
+    const existingSubjectById = await getSubjectById(subjectId);
+    if (!existingSubjectById)
+      return res.status(404).json({ error: "Subject not found" });
+
+    const { departmentId, name, code, description } = parseRequest(
+      subjectUpdateSchema,
+      req.body
+    );
+
+    const updateValues: Record<string, unknown> = {};
+
+    if (departmentId) {
+      const department = await getDepartmentById(departmentId);
+
+      if (!department)
+        return res.status(404).json({ error: "Department not found" });
+
+      updateValues.departmentId = departmentId;
+    }
+
+    if (name) updateValues.name = name;
+
+    if (code) {
+      const [existingSubjectWithCode] = await db
+        .select({ id: subjects.id })
+        .from(subjects)
+        .where(and(eq(subjects.code, code), ne(subjects.id, subjectId)));
+
+      if (existingSubjectWithCode)
+        return res.status(409).json({ error: "Subject code already exists" });
+
+      updateValues.code = code;
+    }
+
+    if (description) updateValues.description = description;
+
+    await db
+      .update(subjects)
+      .set(updateValues)
+      .where(eq(subjects.id, subjectId));
+
+    const subject = await getSubjectById(subjectId);
+
+    res.status(200).json({ data: subject });
+  } catch (error) {
+    console.error("PUT /subjects/:id error:", error);
+    res.status(500).json({ error: "Failed to update subject" });
+  }
+});
+
+// Delete a subject by ID
+router.delete("/:id", async (req, res) => {
+  try {
+    const { id: subjectId } = parseRequest(subjectIdParamSchema, req.params);
+
+    const deletedRows = await db
+      .delete(subjects)
+      .where(eq(subjects.id, subjectId))
+      .returning({ id: subjects.id });
+
+    if (deletedRows.length === 0) {
+      return res.status(404).json({ error: "Subject not found" });
+    }
+
+    res.status(200).json({ message: "Subject deleted" });
+  } catch (error) {
+    console.error("DELETE /subjects/:id error:", error);
+    res.status(500).json({ error: "Failed to delete subject" });
   }
 });
 
