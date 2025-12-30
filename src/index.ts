@@ -1,7 +1,11 @@
 import cors from "cors";
 import express from "express";
+import { toNodeHandler } from "better-auth/node";
+
+import { auth } from "./lib/auth";
 
 import subjectsRouter from "./routes/subjects";
+import usersRouter from "./routes/users";
 
 const app = express();
 const PORT = 8000;
@@ -16,6 +20,9 @@ app.use(
 
 app.use(express.json());
 
+app.all("/api/auth/{*any}", toNodeHandler(auth));
+
+app.use("/api/users", usersRouter);
 app.use("/api/subjects", subjectsRouter);
 
 app.get("/", (req, res) => {
