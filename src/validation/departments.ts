@@ -1,0 +1,34 @@
+import { z } from "zod";
+
+export const departmentIdParamSchema = z
+  .object({
+    id: z.coerce.number().int().positive(),
+  })
+  .strict();
+
+export const departmentListQuerySchema = z
+  .object({
+    search: z.string().trim().min(1).optional(),
+    page: z.coerce.number().int().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+  })
+  .strict();
+
+export const departmentCreateSchema = z
+  .object({
+    name: z.string().trim().min(1),
+    code: z.string().trim().min(1),
+    description: z.string().trim().optional().nullable(),
+  })
+  .strict();
+
+export const departmentUpdateSchema = z
+  .object({
+    name: z.string().trim().min(1).optional(),
+    code: z.string().trim().min(1).optional(),
+    description: z.string().trim().optional().nullable(),
+  })
+  .strict()
+  .refine((data) => Object.values(data).some((value) => value !== undefined), {
+    message: "At least one field must be provided",
+  });

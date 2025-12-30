@@ -8,6 +8,7 @@ import subjectsRouter from "./routes/subjects";
 import usersRouter from "./routes/users";
 import classesRouter from "./routes/classes";
 import enrollmentsRouter from "./routes/enrollments";
+import departmentsRouter from "./routes/departments";
 
 const app = express();
 const PORT = 8000;
@@ -28,6 +29,7 @@ app.use("/api/users", usersRouter);
 app.use("/api/subjects", subjectsRouter);
 app.use("/api/classes", classesRouter);
 app.use("/api/enrollments", enrollmentsRouter);
+app.use("/api/departments", departmentsRouter);
 
 app.get("/", (req, res) => {
   res.send("Backend server is running!");

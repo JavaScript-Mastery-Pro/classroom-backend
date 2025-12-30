@@ -110,10 +110,10 @@ router.post(
   authorizeRoles("admin", "teacher", "student"),
   async (req, res) => {
   try {
-    const { classId, studentId } = parseRequest(
-      enrollmentCreateSchema,
-      req.body
-    );
+    const { classId } = parseRequest(enrollmentCreateSchema, req.body);
+    const studentId = res.locals.user?.id;
+
+    if (!studentId) return res.status(401).json({ error: "Unauthorized" });
 
     const classRecord = await getClassById(classId);
     if (!classRecord) return res.status(404).json({ error: "Class not found" });
@@ -160,10 +160,10 @@ router.post(
   authorizeRoles("admin", "teacher", "student"),
   async (req, res) => {
   try {
-    const { inviteCode, studentId } = parseRequest(
-      enrollmentJoinSchema,
-      req.body
-    );
+    const { inviteCode } = parseRequest(enrollmentJoinSchema, req.body);
+    const studentId = res.locals.user?.id;
+
+    if (!studentId) return res.status(401).json({ error: "Unauthorized" });
 
     const classRecord = await getClassByInviteCode(inviteCode);
 

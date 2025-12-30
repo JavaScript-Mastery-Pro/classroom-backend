@@ -206,7 +206,6 @@ router.put(
     const { id: classId } = parseRequest(classIdParamSchema, req.params);
     const {
       subjectId,
-      teacherId,
       inviteCode,
       bannerCldPubId,
       bannerUrl,
@@ -226,11 +225,6 @@ router.put(
       if (!subject) return res.status(404).json({ error: "Subject not found" });
     }
 
-    if (teacherId) {
-      const teacher = await getUserById(teacherId);
-      if (!teacher) return res.status(404).json({ error: "Teacher not found" });
-    }
-
     if (inviteCode) {
       const existingInvite = await getClassByInviteCode(inviteCode);
 
@@ -242,7 +236,6 @@ router.put(
 
     for (const [key, value] of Object.entries({
       subjectId,
-      teacherId,
       inviteCode,
       bannerCldPubId,
       bannerUrl,

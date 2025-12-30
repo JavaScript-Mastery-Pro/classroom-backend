@@ -18,14 +18,12 @@ export const enrollmentListQuerySchema = z
 export const enrollmentCreateSchema = z
   .object({
     classId: z.coerce.number().int().positive(),
-    studentId: z.string().trim().min(1),
   })
   .strict();
 
 export const enrollmentJoinSchema = z
   .object({
     inviteCode: z.string().trim().min(1),
-    studentId: z.string().trim().min(1),
   })
   .strict();
 

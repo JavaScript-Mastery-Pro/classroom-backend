@@ -11,3 +11,12 @@ export const getDepartmentById = async (departmentId: number) => {
 
   return departmentRows[0];
 };
+
+export const getDepartmentByCode = async (code: string) => {
+  const departmentRows = await db
+    .select()
+    .from(departments)
+    .where(eq(departments.code, code));
+
+  return departmentRows[0];
+};
