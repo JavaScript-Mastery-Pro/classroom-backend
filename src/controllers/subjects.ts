@@ -17,3 +17,12 @@ export const getSubjectById = async (subjectId: number) => {
 
   return subjectRows[0];
 };
+
+export const getSubjectByCode = async (code: string) => {
+  const subjectRows = await db
+    .select()
+    .from(subjects)
+    .where(eq(subjects.code, code));
+
+  return subjectRows[0];
+};

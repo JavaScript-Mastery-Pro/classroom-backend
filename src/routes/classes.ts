@@ -1,9 +1,9 @@
 import express from "express";
-import { and, desc, eq, ilike, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 
 import { db } from "../db";
 import { classes } from "../db/schema";
-import { getClassById } from "../controllers/classes";
+import { getClassById, getClassByInviteCode } from "../controllers/classes";
 import { getSubjectById } from "../controllers/subjects";
 import { getUserById } from "../controllers/users";
 import { parseRequest } from "../lib/validation";
@@ -94,14 +94,9 @@ router.get("/invite/:code", async (req, res) => {
   try {
     const { code } = parseRequest(classInviteParamSchema, req.params);
 
-    const [classRecord] = await db
-      .select()
-      .from(classes)
-      .where(eq(classes.inviteCode, code));
+    const classRecord = await getClassByInviteCode(code);
 
-    if (!classRecord) {
-      return res.status(404).json({ error: "Class not found" });
-    }
+    if (!classRecord) return res.status(404).json({ error: "Class not found" });
 
     res.status(200).json({ data: classRecord });
   } catch (error) {
@@ -131,41 +126,49 @@ router.get("/:id", async (req, res) => {
 // Create class
 router.post("/", async (req, res) => {
   try {
-    const payload = parseRequest(classCreateSchema, req.body);
+    const {
+      subjectId,
+      inviteCode,
+      name,
+      teacherId,
+      bannerCldPubId,
+      bannerUrl,
+      capacity,
+      description,
+      schedules,
+      status,
+    } = parseRequest(classCreateSchema, req.body);
 
-    const subject = await getSubjectById(payload.subjectId);
+    const subject = await getSubjectById(subjectId);
     if (!subject) {
       return res.status(404).json({ error: "Subject not found" });
     }
 
-    const teacher = await getUserById(payload.teacherId);
-    if (!teacher) {
-      return res.status(404).json({ error: "Teacher not found" });
-    }
+    const teacher = await getUserById(teacherId);
+    if (!teacher) return res.status(404).json({ error: "Teacher not found" });
 
-    const [existingInvite] = await db
-      .select({ id: classes.id })
-      .from(classes)
-      .where(eq(classes.inviteCode, payload.inviteCode));
-
-    if (existingInvite) {
+    const existingInvite = await getClassByInviteCode(inviteCode);
+    if (existingInvite)
       return res.status(409).json({ error: "Invite code already exists" });
-    }
 
     const [createdClass] = await db
       .insert(classes)
       .values({
-        ...payload,
-        description: payload.description ?? null,
-        bannerUrl: payload.bannerUrl ?? null,
-        bannerCldPubId: payload.bannerCldPubId ?? null,
-        schedules: payload.schedules ?? [],
+        subjectId,
+        inviteCode,
+        name,
+        teacherId,
+        bannerCldPubId,
+        bannerUrl,
+        capacity,
+        description,
+        schedules,
+        status,
       })
       .returning({ id: classes.id });
 
-    if (!createdClass) {
+    if (!createdClass)
       return res.status(500).json({ error: "Failed to create class" });
-    }
 
     const classRecord = await getClassById(createdClass.id);
 
@@ -208,14 +211,9 @@ router.put("/:id", async (req, res) => {
     }
 
     if (inviteCode) {
-      const [existingInvite] = await db
-        .select({ id: classes.id })
-        .from(classes)
-        .where(
-          and(eq(classes.inviteCode, inviteCode), ne(classes.id, classId))
-        );
+      const existingInvite = await getClassByInviteCode(inviteCode);
 
-      if (existingInvite)
+      if (existingInvite && existingInvite.id !== classId)
         return res.status(409).json({ error: "Invite code already exists" });
     }
 

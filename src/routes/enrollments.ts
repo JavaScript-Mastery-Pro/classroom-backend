@@ -2,8 +2,8 @@ import express from "express";
 import { and, desc, eq, ne, sql } from "drizzle-orm";
 
 import { db } from "../db";
-import { classes, enrollments } from "../db/schema";
-import { getClassById } from "../controllers/classes";
+import { enrollments } from "../db/schema";
+import { getClassById, getClassByInviteCode } from "../controllers/classes";
 import { getEnrollmentById } from "../controllers/enrollments";
 import { getUserById } from "../controllers/users";
 import { parseRequest } from "../lib/validation";
@@ -148,10 +148,7 @@ router.post("/join", async (req, res) => {
       req.body
     );
 
-    const [classRecord] = await db
-      .select()
-      .from(classes)
-      .where(eq(classes.inviteCode, inviteCode));
+    const classRecord = await getClassByInviteCode(inviteCode);
 
     if (!classRecord) return res.status(404).json({ error: "Class not found" });
 

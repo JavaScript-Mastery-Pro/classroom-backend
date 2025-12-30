@@ -1,14 +1,5 @@
 import express from "express";
-import {
-  eq,
-  ilike,
-  or,
-  and,
-  desc,
-  sql,
-  getTableColumns,
-  ne,
-} from "drizzle-orm";
+import { eq, ilike, or, and, desc, sql, getTableColumns } from "drizzle-orm";
 
 import { db } from "../db";
 import { departments, subjects } from "../db/schema";
@@ -17,7 +8,7 @@ import {
   subjectIdParamSchema,
   subjectUpdateSchema,
 } from "../validation/subjects";
-import { getSubjectById } from "../controllers/subjects";
+import { getSubjectByCode, getSubjectById } from "../controllers/subjects";
 import { getDepartmentById } from "../controllers/departments";
 import { parseRequest } from "../lib/validation";
 
@@ -120,11 +111,7 @@ router.post("/", async (req, res) => {
     if (!department)
       return res.status(404).json({ error: "Department not found" });
 
-    const [existingSubject] = await db
-      .select({ id: subjects.id })
-      .from(subjects)
-      .where(eq(subjects.code, code));
-
+    const existingSubject = await getSubjectByCode(code);
     if (existingSubject)
       return res.status(409).json({ error: "Subject code already exists" });
 
@@ -176,12 +163,9 @@ router.put("/:id", async (req, res) => {
     }
 
     if (code) {
-      const [existingSubjectWithCode] = await db
-        .select({ id: subjects.id })
-        .from(subjects)
-        .where(and(eq(subjects.code, code), ne(subjects.id, subjectId)));
+      const existingSubjectWithCode = await getSubjectByCode(code);
 
-      if (existingSubjectWithCode)
+      if (existingSubjectWithCode && existingSubjectWithCode.id !== subjectId)
         return res.status(409).json({ error: "Subject code already exists" });
 
       updateValues.code = code;

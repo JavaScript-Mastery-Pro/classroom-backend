@@ -8,3 +8,9 @@ export const getUserById = async (userId: string) => {
 
   return userRows[0];
 };
+
+export const getUserByEmail = async (email: string) => {
+  const userRows = await db.select().from(user).where(eq(user.email, email));
+
+  return userRows[0];
+};

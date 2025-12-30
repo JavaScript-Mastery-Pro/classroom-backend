@@ -1,9 +1,9 @@
 import express from "express";
-import { and, desc, eq, ilike, ne, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, sql } from "drizzle-orm";
 
 import { db } from "../db";
 import { user } from "../db/schema/auth";
-import { getUserById } from "../controllers/users";
+import { getUserByEmail, getUserById } from "../controllers/users";
 import { parseRequest } from "../lib/validation";
 import {
   userCreateSchema,
@@ -100,26 +100,19 @@ router.post("/", async (req, res) => {
   try {
     const payload = parseRequest(userCreateSchema, req.body);
 
-    const [existingUser] = await db
-      .select({ id: user.id })
-      .from(user)
-      .where(eq(user.email, payload.email));
-
-    if (existingUser) {
+    const existingUser = await getUserByEmail(payload.email);
+    if (existingUser)
       return res.status(409).json({
         error: "Email already exists",
         message: "Email already exists",
       });
-    }
 
     const [createdUser] = await db.insert(user).values(payload).returning();
-
-    if (!createdUser) {
+    if (!createdUser)
       return res.status(500).json({
         error: "Internal server error",
         message: "Failed to create user",
       });
-    }
 
     res.status(201).json({
       data: createdUser,
@@ -147,12 +140,9 @@ router.put("/:id", async (req, res) => {
         .json({ error: "User not found", message: "User not found" });
 
     if (email) {
-      const [existingEmail] = await db
-        .select({ id: user.id })
-        .from(user)
-        .where(and(eq(user.email, email), ne(user.id, userId)));
+      const existingEmail = await getUserByEmail(email);
 
-      if (existingEmail)
+      if (existingEmail && existingEmail.id !== userId)
         return res.status(409).json({
           error: "Email already exists",
           message: "Email already exists",
@@ -179,11 +169,10 @@ router.put("/:id", async (req, res) => {
       .where(eq(user.id, userId))
       .returning();
 
-    if (!updatedUser) {
+    if (!updatedUser)
       return res
         .status(404)
         .json({ error: "User not found", message: "User not found" });
-    }
 
     res.status(200).json({
       data: updatedUser,

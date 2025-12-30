@@ -22,3 +22,12 @@ export const getClassById = async (classId: number) => {
 
   return classRows[0];
 };
+
+export const getClassByInviteCode = async (inviteCode: string) => {
+  const classRows = await db
+    .select()
+    .from(classes)
+    .where(eq(classes.inviteCode, inviteCode));
+
+  return classRows[0];
+};
