@@ -3,3 +3,18 @@ type Schedule = {
   startTime: string;
   endTime: string;
 };
+
+declare global {
+  namespace Express {
+    interface Locals {
+      user?: {
+        id?: string;
+        role?: "admin" | "teacher" | "student";
+        [key: string]: unknown;
+      };
+      session?: unknown;
+    }
+  }
+}
+
+export {};

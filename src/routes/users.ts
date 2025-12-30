@@ -5,6 +5,7 @@ import { db } from "../db";
 import { user } from "../db/schema/auth";
 import { getUserByEmail, getUserById } from "../controllers/users";
 import { parseRequest } from "../lib/validation";
+import { authenticate, authorizeRoles } from "../middleware/auth-middleware";
 import {
   userCreateSchema,
   userIdParamSchema,
@@ -13,6 +14,8 @@ import {
 } from "../validation/users";
 
 const router = express.Router();
+
+router.use(authenticate, authorizeRoles("admin"));
 
 // Get all users with optional role filter, search by name, and pagination
 router.get("/", async (req, res) => {

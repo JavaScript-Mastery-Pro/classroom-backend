@@ -7,6 +7,7 @@ import { getClassById, getClassByInviteCode } from "../controllers/classes";
 import { getSubjectById } from "../controllers/subjects";
 import { getUserById } from "../controllers/users";
 import { parseRequest } from "../lib/validation";
+import { authenticate, authorizeRoles } from "../middleware/auth-middleware";
 import {
   classCreateSchema,
   classIdParamSchema,
@@ -18,7 +19,11 @@ import {
 const router = express.Router();
 
 // Get all classes with optional filters and pagination
-router.get("/", async (req, res) => {
+router.get(
+  "/",
+  authenticate,
+  authorizeRoles("admin", "teacher", "student"),
+  async (req, res) => {
   try {
     const {
       search,
@@ -90,7 +95,11 @@ router.get("/", async (req, res) => {
 });
 
 // Get class by invite code
-router.get("/invite/:code", async (req, res) => {
+router.get(
+  "/invite/:code",
+  authenticate,
+  authorizeRoles("admin", "teacher", "student"),
+  async (req, res) => {
   try {
     const { code } = parseRequest(classInviteParamSchema, req.params);
 
@@ -106,7 +115,11 @@ router.get("/invite/:code", async (req, res) => {
 });
 
 // Get class by ID
-router.get("/:id", async (req, res) => {
+router.get(
+  "/:id",
+  authenticate,
+  authorizeRoles("admin", "teacher", "student"),
+  async (req, res) => {
   try {
     const { id: classId } = parseRequest(classIdParamSchema, req.params);
 
@@ -124,7 +137,11 @@ router.get("/:id", async (req, res) => {
 });
 
 // Create class
-router.post("/", async (req, res) => {
+router.post(
+  "/",
+  authenticate,
+  authorizeRoles("admin", "teacher"),
+  async (req, res) => {
   try {
     const {
       subjectId,
@@ -180,7 +197,11 @@ router.post("/", async (req, res) => {
 });
 
 // Update class
-router.put("/:id", async (req, res) => {
+router.put(
+  "/:id",
+  authenticate,
+  authorizeRoles("admin", "teacher"),
+  async (req, res) => {
   try {
     const { id: classId } = parseRequest(classIdParamSchema, req.params);
     const {
@@ -246,7 +267,11 @@ router.put("/:id", async (req, res) => {
 });
 
 // Delete class
-router.delete("/:id", async (req, res) => {
+router.delete(
+  "/:id",
+  authenticate,
+  authorizeRoles("admin", "teacher"),
+  async (req, res) => {
   try {
     const { id: classId } = parseRequest(classIdParamSchema, req.params);
 

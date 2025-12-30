@@ -11,11 +11,16 @@ import {
 import { getSubjectByCode, getSubjectById } from "../controllers/subjects";
 import { getDepartmentById } from "../controllers/departments";
 import { parseRequest } from "../lib/validation";
+import { authenticate, authorizeRoles } from "../middleware/auth-middleware";
 
 const router = express.Router();
 
 // Get all subjects with optional search, department filter, and pagination
-router.get("/", async (req, res) => {
+router.get(
+  "/",
+  authenticate,
+  authorizeRoles("admin", "teacher", "student"),
+  async (req, res) => {
   try {
     const { search, department, page = 1, limit = 10 } = req.query;
 
@@ -81,7 +86,11 @@ router.get("/", async (req, res) => {
 });
 
 // Get a single subject by ID
-router.get("/:id", async (req, res) => {
+router.get(
+  "/:id",
+  authenticate,
+  authorizeRoles("admin", "teacher", "student"),
+  async (req, res) => {
   try {
     const { id: subjectId } = parseRequest(subjectIdParamSchema, req.params);
 
@@ -99,7 +108,11 @@ router.get("/:id", async (req, res) => {
 });
 
 // Create a new subject
-router.post("/", async (req, res) => {
+router.post(
+  "/",
+  authenticate,
+  authorizeRoles("admin", "teacher"),
+  async (req, res) => {
   try {
     const { departmentId, name, code, description } = parseRequest(
       subjectCreateSchema,
@@ -138,7 +151,11 @@ router.post("/", async (req, res) => {
 });
 
 // Update a subject by ID
-router.put("/:id", async (req, res) => {
+router.put(
+  "/:id",
+  authenticate,
+  authorizeRoles("admin", "teacher"),
+  async (req, res) => {
   try {
     const { id: subjectId } = parseRequest(subjectIdParamSchema, req.params);
 
@@ -190,7 +207,11 @@ router.put("/:id", async (req, res) => {
 });
 
 // Delete a subject by ID
-router.delete("/:id", async (req, res) => {
+router.delete(
+  "/:id",
+  authenticate,
+  authorizeRoles("admin", "teacher"),
+  async (req, res) => {
   try {
     const { id: subjectId } = parseRequest(subjectIdParamSchema, req.params);
 

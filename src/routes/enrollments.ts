@@ -7,6 +7,7 @@ import { getClassById, getClassByInviteCode } from "../controllers/classes";
 import { getEnrollmentById } from "../controllers/enrollments";
 import { getUserById } from "../controllers/users";
 import { parseRequest } from "../lib/validation";
+import { authenticate, authorizeRoles } from "../middleware/auth-middleware";
 import {
   enrollmentCreateSchema,
   enrollmentIdParamSchema,
@@ -18,7 +19,11 @@ import {
 const router = express.Router();
 
 // Get all enrollments with optional filters and pagination
-router.get("/", async (req, res) => {
+router.get(
+  "/",
+  authenticate,
+  authorizeRoles("admin", "teacher"),
+  async (req, res) => {
   try {
     const {
       classId,
@@ -75,7 +80,11 @@ router.get("/", async (req, res) => {
 });
 
 // Get enrollment by ID
-router.get("/:id", async (req, res) => {
+router.get(
+  "/:id",
+  authenticate,
+  authorizeRoles("admin", "teacher"),
+  async (req, res) => {
   try {
     const { id: enrollmentId } = parseRequest(
       enrollmentIdParamSchema,
@@ -95,7 +104,11 @@ router.get("/:id", async (req, res) => {
 });
 
 // Create enrollment
-router.post("/", async (req, res) => {
+router.post(
+  "/",
+  authenticate,
+  authorizeRoles("admin", "teacher", "student"),
+  async (req, res) => {
   try {
     const { classId, studentId } = parseRequest(
       enrollmentCreateSchema,
@@ -141,7 +154,11 @@ router.post("/", async (req, res) => {
 });
 
 // Join class by invite code
-router.post("/join", async (req, res) => {
+router.post(
+  "/join",
+  authenticate,
+  authorizeRoles("admin", "teacher", "student"),
+  async (req, res) => {
   try {
     const { inviteCode, studentId } = parseRequest(
       enrollmentJoinSchema,
@@ -188,7 +205,11 @@ router.post("/join", async (req, res) => {
 });
 
 // Update enrollment
-router.put("/:id", async (req, res) => {
+router.put(
+  "/:id",
+  authenticate,
+  authorizeRoles("admin", "teacher"),
+  async (req, res) => {
   try {
     const { id: enrollmentId } = parseRequest(
       enrollmentIdParamSchema,
@@ -261,7 +282,11 @@ router.put("/:id", async (req, res) => {
 });
 
 // Delete enrollment
-router.delete("/:id", async (req, res) => {
+router.delete(
+  "/:id",
+  authenticate,
+  authorizeRoles("admin", "teacher"),
+  async (req, res) => {
   try {
     const { id: enrollmentId } = parseRequest(
       enrollmentIdParamSchema,
