@@ -13,6 +13,12 @@ import {
 
 import { user } from "./auth";
 
+export const classStatusEnum = pgEnum("class_status", [
+  "active",
+  "inactive",
+  "archived",
+]);
+
 const timestamps = {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
@@ -43,12 +49,6 @@ export const subjects = pgTable("subjects", {
 
   ...timestamps,
 });
-
-export const classStatusEnum = pgEnum("class_status", [
-  "active",
-  "inactive",
-  "archived",
-]);
 
 export const classes = pgTable(
   "classes",
