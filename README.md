@@ -3,20 +3,25 @@
 Production-ready API for departments, subjects, classes, enrollments, and users with Better Auth.
 
 ## Contents
+
 - Setup
 - Auth and Roles
 - Common Conventions
 - Endpoints
 - Seeding
+- Video Flow Context
 
 ## Setup
 
 ### Requirements
+
 - Node.js 18+
 - Postgres (or Neon) connection string
 
 ### Environment
+
 Create `.env`:
+
 ```
 DATABASE_URL=postgres://user:password@host:port/db
 BETTER_AUTH_SECRET=your_secret_here
@@ -24,12 +29,14 @@ FRONTEND_URL=http://localhost:3000
 ```
 
 ### Install and Run
+
 ```
 npm install
 npm run dev
 ```
 
 ### Base URL
+
 ```
 http://localhost:8000
 ```
@@ -37,18 +44,22 @@ http://localhost:8000
 ## Auth and Roles
 
 ### Better Auth
+
 Mounted at `/api/auth/*`. Use cookie-based auth. Store cookies after sign-in and pass them on subsequent requests.
 
 Important:
+
 - Better Auth handler is mounted before `express.json()`.
 - Use `-c` and `-b` in curl to persist cookies.
 
 ### Role Access
+
 - admin: full access
 - teacher: read all; write subjects/classes/enrollments
 - student: read all; write enrollments only
 
 Role matrix:
+
 - `/api/users`: admin only
 - `/api/departments`: admin write; all roles read
 - `/api/subjects`: admin/teacher write; all roles read
@@ -58,17 +69,22 @@ Role matrix:
 ## Common Conventions
 
 ### Headers
+
 Use JSON for request bodies:
+
 ```
 Content-Type: application/json
 ```
 
 ### Pagination
+
 List endpoints support:
+
 - `page` (default: 1)
 - `limit` (default: 10)
 
 Response format:
+
 ```
 {
   "data": [],
@@ -82,19 +98,24 @@ Response format:
 ```
 
 ### Errors
+
 ```
 { "error": "Message" }
 ```
 
 ### Authentication in curl
+
 Sign in and store cookies:
+
 ```
 curl -X POST http://localhost:8000/api/auth/sign-in/email \
   -H "Content-Type: application/json" \
   -d '{ "email": "teacher1@classroom.test", "password": "Password123!" }' \
   -c cookie.txt
 ```
+
 Use cookies on protected endpoints:
+
 ```
 curl http://localhost:8000/api/subjects -b cookie.txt
 ```
@@ -104,7 +125,9 @@ curl http://localhost:8000/api/subjects -b cookie.txt
 ### Auth (Better Auth)
 
 #### POST /api/auth/sign-up/email
+
 Body:
+
 ```
 {
   "email": "teacher1@classroom.test",
@@ -114,7 +137,9 @@ Body:
   "imageCldPubId": "demo-image"
 }
 ```
+
 Example:
+
 ```
 curl -X POST http://localhost:8000/api/auth/sign-up/email \
   -H "Content-Type: application/json" \
@@ -127,14 +152,18 @@ curl -X POST http://localhost:8000/api/auth/sign-up/email \
 ```
 
 #### POST /api/auth/sign-in/email
+
 Body:
+
 ```
 {
   "email": "teacher1@classroom.test",
   "password": "Password123!"
 }
 ```
+
 Example:
+
 ```
 curl -X POST http://localhost:8000/api/auth/sign-in/email \
   -H "Content-Type: application/json" \
@@ -143,18 +172,23 @@ curl -X POST http://localhost:8000/api/auth/sign-in/email \
 ```
 
 #### GET /api/auth/get-session
+
 Example:
+
 ```
 curl http://localhost:8000/api/auth/get-session -b cookie.txt
 ```
 
 #### POST /api/auth/sign-out
+
 Example:
+
 ```
 curl -X POST http://localhost:8000/api/auth/sign-out -b cookie.txt
 ```
 
 Other auth endpoints (if enabled in Better Auth):
+
 - `/api/auth/list-sessions` (GET)
 - `/api/auth/revoke-session` (POST)
 - `/api/auth/revoke-sessions` (POST)
@@ -176,24 +210,31 @@ Other auth endpoints (if enabled in Better Auth):
 ### Users (Admin Only)
 
 #### GET /api/users
+
 Query:
+
 - `role`: admin | teacher | student
 - `search`: name search
 - `page`, `limit`
 
 Example:
+
 ```
 curl "http://localhost:8000/api/users?role=teacher&page=1&limit=10" -b cookie.txt
 ```
 
 #### GET /api/users/:id
+
 Example:
+
 ```
 curl http://localhost:8000/api/users/user_teacher_1 -b cookie.txt
 ```
 
 #### POST /api/users
+
 Body:
+
 ```
 {
   "id": "user_teacher_3",
@@ -203,7 +244,9 @@ Body:
   "role": "teacher"
 }
 ```
+
 Example:
+
 ```
 curl -X POST http://localhost:8000/api/users \
   -H "Content-Type: application/json" \
@@ -212,11 +255,15 @@ curl -X POST http://localhost:8000/api/users \
 ```
 
 #### PUT /api/users/:id
+
 Body:
+
 ```
 { "name": "Teacher One Updated" }
 ```
+
 Example:
+
 ```
 curl -X PUT http://localhost:8000/api/users/user_teacher_1 \
   -H "Content-Type: application/json" \
@@ -225,7 +272,9 @@ curl -X PUT http://localhost:8000/api/users/user_teacher_1 \
 ```
 
 #### DELETE /api/users/:id
+
 Example:
+
 ```
 curl -X DELETE http://localhost:8000/api/users/user_teacher_1 -b cookie.txt
 ```
@@ -233,23 +282,30 @@ curl -X DELETE http://localhost:8000/api/users/user_teacher_1 -b cookie.txt
 ### Departments
 
 #### GET /api/departments
+
 Query:
+
 - `search`
 - `page`, `limit`
 
 Example:
+
 ```
 curl "http://localhost:8000/api/departments?search=CS" -b cookie.txt
 ```
 
 #### GET /api/departments/:id
+
 Example:
+
 ```
 curl http://localhost:8000/api/departments/1 -b cookie.txt
 ```
 
 #### POST /api/departments (admin)
+
 Body:
+
 ```
 {
   "code": "BIO",
@@ -257,7 +313,9 @@ Body:
   "description": "Life sciences"
 }
 ```
+
 Example:
+
 ```
 curl -X POST http://localhost:8000/api/departments \
   -H "Content-Type: application/json" \
@@ -266,11 +324,15 @@ curl -X POST http://localhost:8000/api/departments \
 ```
 
 #### PUT /api/departments/:id (admin)
+
 Body:
+
 ```
 { "name": "Computer Science and Engineering" }
 ```
+
 Example:
+
 ```
 curl -X PUT http://localhost:8000/api/departments/1 \
   -H "Content-Type: application/json" \
@@ -279,7 +341,9 @@ curl -X PUT http://localhost:8000/api/departments/1 \
 ```
 
 #### DELETE /api/departments/:id (admin)
+
 Example:
+
 ```
 curl -X DELETE http://localhost:8000/api/departments/1 -b cookie.txt
 ```
@@ -287,24 +351,31 @@ curl -X DELETE http://localhost:8000/api/departments/1 -b cookie.txt
 ### Subjects
 
 #### GET /api/subjects
+
 Query:
+
 - `search` (name/code)
 - `department` (department name search)
 - `page`, `limit`
 
 Example:
+
 ```
 curl "http://localhost:8000/api/subjects?search=CS&page=1&limit=10" -b cookie.txt
 ```
 
 #### GET /api/subjects/:id
+
 Example:
+
 ```
 curl http://localhost:8000/api/subjects/1 -b cookie.txt
 ```
 
 #### POST /api/subjects (admin/teacher)
+
 Body:
+
 ```
 {
   "departmentId": 1,
@@ -313,7 +384,9 @@ Body:
   "description": "Core data structures"
 }
 ```
+
 Example:
+
 ```
 curl -X POST http://localhost:8000/api/subjects \
   -H "Content-Type: application/json" \
@@ -322,11 +395,15 @@ curl -X POST http://localhost:8000/api/subjects \
 ```
 
 #### PUT /api/subjects/:id (admin/teacher)
+
 Body:
+
 ```
 { "name": "Intro to Programming Updated" }
 ```
+
 Example:
+
 ```
 curl -X PUT http://localhost:8000/api/subjects/1 \
   -H "Content-Type: application/json" \
@@ -335,7 +412,9 @@ curl -X PUT http://localhost:8000/api/subjects/1 \
 ```
 
 #### DELETE /api/subjects/:id (admin/teacher)
+
 Example:
+
 ```
 curl -X DELETE http://localhost:8000/api/subjects/1 -b cookie.txt
 ```
@@ -343,7 +422,9 @@ curl -X DELETE http://localhost:8000/api/subjects/1 -b cookie.txt
 ### Classes
 
 #### GET /api/classes
+
 Query:
+
 - `search` (name/inviteCode)
 - `subjectId`
 - `teacherId`
@@ -351,24 +432,31 @@ Query:
 - `page`, `limit`
 
 Example:
+
 ```
 curl "http://localhost:8000/api/classes?subjectId=1&page=1&limit=10" -b cookie.txt
 ```
 
 #### GET /api/classes/invite/:code
+
 Example:
+
 ```
 curl http://localhost:8000/api/classes/invite/CS101A -b cookie.txt
 ```
 
 #### GET /api/classes/:id
+
 Example:
+
 ```
 curl http://localhost:8000/api/classes/1 -b cookie.txt
 ```
 
 #### POST /api/classes (admin/teacher)
+
 Body:
+
 ```
 {
   "name": "CS101 - Section C",
@@ -383,7 +471,9 @@ Body:
   ]
 }
 ```
+
 Example:
+
 ```
 curl -X POST http://localhost:8000/api/classes \
   -H "Content-Type: application/json" \
@@ -392,11 +482,15 @@ curl -X POST http://localhost:8000/api/classes \
 ```
 
 #### PUT /api/classes/:id (admin/teacher)
+
 Body:
+
 ```
 { "name": "CS101 - Section A Updated" }
 ```
+
 Example:
+
 ```
 curl -X PUT http://localhost:8000/api/classes/1 \
   -H "Content-Type: application/json" \
@@ -405,7 +499,9 @@ curl -X PUT http://localhost:8000/api/classes/1 \
 ```
 
 #### DELETE /api/classes/:id (admin/teacher)
+
 Example:
+
 ```
 curl -X DELETE http://localhost:8000/api/classes/1 -b cookie.txt
 ```
@@ -413,30 +509,39 @@ curl -X DELETE http://localhost:8000/api/classes/1 -b cookie.txt
 ### Enrollments
 
 #### GET /api/enrollments (admin/teacher)
+
 Query:
+
 - `classId`
 - `studentId`
 - `page`, `limit`
 
 Example:
+
 ```
 curl "http://localhost:8000/api/enrollments?classId=1" -b cookie.txt
 ```
 
 #### GET /api/enrollments/:id (admin/teacher)
+
 Example:
+
 ```
 curl http://localhost:8000/api/enrollments/1 -b cookie.txt
 ```
 
 #### POST /api/enrollments (admin/teacher/student)
+
 Body:
+
 ```
 { "classId": 1 }
 ```
+
 Note: `studentId` is taken from the authenticated user.
 
 Example:
+
 ```
 curl -X POST http://localhost:8000/api/enrollments \
   -H "Content-Type: application/json" \
@@ -445,13 +550,17 @@ curl -X POST http://localhost:8000/api/enrollments \
 ```
 
 #### POST /api/enrollments/join (admin/teacher/student)
+
 Body:
+
 ```
 { "inviteCode": "CS101A" }
 ```
+
 Note: `studentId` is taken from the authenticated user.
 
 Example:
+
 ```
 curl -X POST http://localhost:8000/api/enrollments/join \
   -H "Content-Type: application/json" \
@@ -460,11 +569,15 @@ curl -X POST http://localhost:8000/api/enrollments/join \
 ```
 
 #### PUT /api/enrollments/:id (admin/teacher)
+
 Body:
+
 ```
 { "classId": 2 }
 ```
+
 Example:
+
 ```
 curl -X PUT http://localhost:8000/api/enrollments/1 \
   -H "Content-Type: application/json" \
@@ -473,18 +586,23 @@ curl -X PUT http://localhost:8000/api/enrollments/1 \
 ```
 
 #### DELETE /api/enrollments/:id (admin/teacher)
+
 Example:
+
 ```
 curl -X DELETE http://localhost:8000/api/enrollments/1 -b cookie.txt
 ```
 
 ## Seeding
+
 Seed demo data:
+
 ```
 npm run seed
 ```
 
 Data file:
+
 ```
 src/seed/data.json
 ```
