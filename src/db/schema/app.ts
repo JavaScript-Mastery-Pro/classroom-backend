@@ -61,7 +61,11 @@ export const classes = pgTable(
       .references(() => users.id, { onDelete: "restrict" }),
 
     inviteCode: varchar("invite_code", { length: 50 }).notNull().unique(),
+    name: varchar("name", { length: 255 }).notNull(),
+    bannerCldPubId: text("banner_cld_pub_id"),
+    bannerUrl: text("banner_url"),
     capacity: integer("capacity").notNull().default(50),
+    description: text("description"),
     status: classStatusEnum("status").notNull().default("active"),
     schedules: jsonb("schedules").$type<Schedule[]>().notNull(),
 
