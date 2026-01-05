@@ -9,7 +9,7 @@ import {
   timestamp,
   varchar,
 } from "drizzle-orm/pg-core";
-import { user } from "./auth";
+import { user } from "./auth.js";
 
 const timestamps = {
   createdAt: timestamp("created_at").defaultNow().notNull(),
