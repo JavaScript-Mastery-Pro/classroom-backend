@@ -2,11 +2,13 @@ import express from "express";
 import { eq, ilike, or, and, desc, sql, getTableColumns } from "drizzle-orm";
 
 import { db } from "../db";
-import { departments, subjects } from "../db/schema";
+import { classes, departments, enrollments, subjects, user } from "../db/schema";
 import {
   subjectCreateSchema,
   subjectIdParamSchema,
+  subjectItemsQuerySchema,
   subjectUpdateSchema,
+  subjectUsersQuerySchema,
 } from "../validation/subjects";
 import { getSubjectByCode, getSubjectById } from "../controllers/subjects";
 import { getDepartmentById } from "../controllers/departments";
@@ -100,10 +102,22 @@ router.get(
       return res.status(404).json({ error: "Subject not found" });
     }
 
-    res.status(200).json({ data: subject });
+    const classesCount = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(classes)
+      .where(eq(classes.subjectId, subjectId));
+
+    res.status(200).json({
+      data: {
+        subject,
+        totals: {
+          classes: classesCount[0]?.count ?? 0,
+        },
+      },
+    });
   } catch (error) {
     console.error("GET /subjects/:id error:", error);
-    res.status(500).json({ error: "Failed to fetch subject" });
+    res.status(500).json({ error: "Failed to fetch subject details" });
   }
 });
 
@@ -203,6 +217,153 @@ router.put(
   } catch (error) {
     console.error("PUT /subjects/:id error:", error);
     res.status(500).json({ error: "Failed to update subject" });
+  }
+});
+
+// List classes in a subject with pagination
+router.get(
+  "/:id/classes",
+  authenticate,
+  authorizeRoles("admin", "teacher", "student"),
+  async (req, res) => {
+  try {
+    const { id: subjectId } = parseRequest(subjectIdParamSchema, req.params);
+    const { page = 1, limit = 10 } = parseRequest(
+      subjectItemsQuerySchema,
+      req.query
+    );
+
+    const currentPage = Math.max(1, +page);
+    const limitPerPage = Math.max(1, +limit);
+    const offset = (currentPage - 1) * limitPerPage;
+
+    const countResult = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(classes)
+      .where(eq(classes.subjectId, subjectId));
+
+    const totalCount = countResult[0]?.count ?? 0;
+
+    const classesList = await db
+      .select({
+        ...getTableColumns(classes),
+        teacher: {
+          ...getTableColumns(user),
+        },
+      })
+      .from(classes)
+      .leftJoin(user, eq(classes.teacherId, user.id))
+      .where(eq(classes.subjectId, subjectId))
+      .orderBy(desc(classes.createdAt))
+      .limit(limitPerPage)
+      .offset(offset);
+
+    res.status(200).json({
+      data: classesList,
+      pagination: {
+        page: currentPage,
+        limit: limitPerPage,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limitPerPage),
+      },
+    });
+  } catch (error) {
+    console.error("GET /subjects/:id/classes error:", error);
+    res.status(500).json({ error: "Failed to fetch subject classes" });
+  }
+});
+
+// List users in a subject by role with pagination
+router.get(
+  "/:id/users",
+  authenticate,
+  authorizeRoles("admin", "teacher", "student"),
+  async (req, res) => {
+  try {
+    const { id: subjectId } = parseRequest(subjectIdParamSchema, req.params);
+    const { role, page = 1, limit = 10 } = parseRequest(
+      subjectUsersQuerySchema,
+      req.query
+    );
+
+    const currentPage = Math.max(1, +page);
+    const limitPerPage = Math.max(1, +limit);
+    const offset = (currentPage - 1) * limitPerPage;
+
+    const baseSelect = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      emailVerified: user.emailVerified,
+      image: user.image,
+      role: user.role,
+      imageCldPubId: user.imageCldPubId,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+
+    const groupByFields = [
+      user.id,
+      user.name,
+      user.email,
+      user.emailVerified,
+      user.image,
+      user.role,
+      user.imageCldPubId,
+      user.createdAt,
+      user.updatedAt,
+    ];
+
+    const countResult =
+      role === "teacher"
+        ? await db
+            .select({ count: sql<number>`count(distinct ${user.id})` })
+            .from(user)
+            .leftJoin(classes, eq(user.id, classes.teacherId))
+            .where(and(eq(user.role, role), eq(classes.subjectId, subjectId)))
+        : await db
+            .select({ count: sql<number>`count(distinct ${user.id})` })
+            .from(user)
+            .leftJoin(enrollments, eq(user.id, enrollments.studentId))
+            .leftJoin(classes, eq(enrollments.classId, classes.id))
+            .where(and(eq(user.role, role), eq(classes.subjectId, subjectId)));
+
+    const totalCount = countResult[0]?.count ?? 0;
+
+    const usersList =
+      role === "teacher"
+        ? await db
+            .select(baseSelect)
+            .from(user)
+            .leftJoin(classes, eq(user.id, classes.teacherId))
+            .where(and(eq(user.role, role), eq(classes.subjectId, subjectId)))
+            .groupBy(...groupByFields)
+            .orderBy(desc(user.createdAt))
+            .limit(limitPerPage)
+            .offset(offset)
+        : await db
+            .select(baseSelect)
+            .from(user)
+            .leftJoin(enrollments, eq(user.id, enrollments.studentId))
+            .leftJoin(classes, eq(enrollments.classId, classes.id))
+            .where(and(eq(user.role, role), eq(classes.subjectId, subjectId)))
+            .groupBy(...groupByFields)
+            .orderBy(desc(user.createdAt))
+            .limit(limitPerPage)
+            .offset(offset);
+
+    res.status(200).json({
+      data: usersList,
+      pagination: {
+        page: currentPage,
+        limit: limitPerPage,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limitPerPage),
+      },
+    });
+  } catch (error) {
+    console.error("GET /subjects/:id/users error:", error);
+    res.status(500).json({ error: "Failed to fetch subject users" });
   }
 });
 

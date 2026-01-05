@@ -35,3 +35,18 @@ export const subjectUpdateSchema = z
   .refine((data) => Object.values(data).some((value) => value !== undefined), {
     message: "At least one field must be provided",
   });
+
+export const subjectItemsQuerySchema = z
+  .object({
+    page: z.coerce.number().int().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+  })
+  .strict();
+
+export const subjectUsersQuerySchema = z
+  .object({
+    role: z.enum(["teacher", "student"] as const),
+    page: z.coerce.number().int().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
+  })
+  .strict();
