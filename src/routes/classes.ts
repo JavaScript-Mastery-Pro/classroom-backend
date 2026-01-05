@@ -25,75 +25,76 @@ router.get(
   authenticate,
   authorizeRoles("admin", "teacher", "student"),
   async (req, res) => {
-  try {
-    const {
-      search,
-      subjectId,
-      teacherId,
-      status,
-      page = 1,
-      limit = 10,
-    } = parseRequest(classListQuerySchema, req.query);
+    try {
+      const {
+        search,
+        subjectId,
+        teacherId,
+        status,
+        page = 1,
+        limit = 10,
+      } = parseRequest(classListQuerySchema, req.query);
 
-    const filterConditions = [];
+      const filterConditions = [];
 
-    const currentPage = Math.max(1, +page);
-    const limitPerPage = Math.max(1, +limit);
-    const offset = (currentPage - 1) * limitPerPage;
+      const currentPage = Math.max(1, +page);
+      const limitPerPage = Math.max(1, +limit);
+      const offset = (currentPage - 1) * limitPerPage;
 
-    if (search) {
-      filterConditions.push(
-        or(
-          ilike(classes.name, `%${search}%`),
-          ilike(classes.inviteCode, `%${search}%`)
-        )
-      );
+      if (search) {
+        filterConditions.push(
+          or(
+            ilike(classes.name, `%${search}%`),
+            ilike(classes.inviteCode, `%${search}%`)
+          )
+        );
+      }
+
+      if (subjectId) {
+        filterConditions.push(eq(classes.subjectId, subjectId));
+      }
+
+      if (teacherId) {
+        filterConditions.push(eq(classes.teacherId, teacherId));
+      }
+
+      if (status) {
+        filterConditions.push(eq(classes.status, status));
+      }
+
+      const whereClause =
+        filterConditions.length > 0 ? and(...filterConditions) : undefined;
+
+      const countResult = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(classes)
+        .where(whereClause);
+
+      const totalCount = countResult[0]?.count ?? 0;
+
+      const classesList = await db
+        .select()
+        .from(classes)
+        .where(whereClause)
+        .orderBy(desc(classes.createdAt))
+        .limit(limitPerPage)
+        .offset(offset);
+
+      res.status(200).json({
+        data: classesList,
+        pagination: {
+          page: currentPage,
+          limit: limitPerPage,
+          total: totalCount,
+          totalPages: Math.ceil(totalCount / limitPerPage),
+        },
+      });
+    } catch (error) {
+      console.error("GET /classes error:", error);
+      res.status(500).json({ error: "Failed to fetch classes" });
     }
-
-    if (subjectId) {
-      filterConditions.push(eq(classes.subjectId, subjectId));
-    }
-
-    if (teacherId) {
-      filterConditions.push(eq(classes.teacherId, teacherId));
-    }
-
-    if (status) {
-      filterConditions.push(eq(classes.status, status));
-    }
-
-    const whereClause =
-      filterConditions.length > 0 ? and(...filterConditions) : undefined;
-
-    const countResult = await db
-      .select({ count: sql<number>`count(*)` })
-      .from(classes)
-      .where(whereClause);
-
-    const totalCount = countResult[0]?.count ?? 0;
-
-    const classesList = await db
-      .select()
-      .from(classes)
-      .where(whereClause)
-      .orderBy(desc(classes.createdAt))
-      .limit(limitPerPage)
-      .offset(offset);
-
-    res.status(200).json({
-      data: classesList,
-      pagination: {
-        page: currentPage,
-        limit: limitPerPage,
-        total: totalCount,
-        totalPages: Math.ceil(totalCount / limitPerPage),
-      },
-    });
-  } catch (error) {
-    console.error("GET /classes error:", error);
-    res.status(500).json({ error: "Failed to fetch classes" });
   }
-});
+);
 
 // Get class by invite code
 router.get(
@@ -101,19 +102,21 @@ router.get(
   authenticate,
   authorizeRoles("admin", "teacher", "student"),
   async (req, res) => {
-  try {
-    const { code } = parseRequest(classInviteParamSchema, req.params);
+    try {
+      const { code } = parseRequest(classInviteParamSchema, req.params);
 
-    const classRecord = await getClassByInviteCode(code);
+      const classRecord = await getClassByInviteCode(code);
 
-    if (!classRecord) return res.status(404).json({ error: "Class not found" });
+      if (!classRecord)
+        return res.status(404).json({ error: "Class not found" });
 
-    res.status(200).json({ data: classRecord });
-  } catch (error) {
-    console.error("GET /classes/invite/:code error:", error);
-    res.status(500).json({ error: "Failed to fetch class" });
+      res.status(200).json({ data: classRecord });
+    } catch (error) {
+      console.error("GET /classes/invite/:code error:", error);
+      res.status(500).json({ error: "Failed to fetch class" });
+    }
   }
-});
+);
 
 // List users in a class by role with pagination
 router.get(
@@ -121,91 +124,95 @@ router.get(
   authenticate,
   authorizeRoles("admin", "teacher", "student"),
   async (req, res) => {
-  try {
-    const { id: classId } = parseRequest(classIdParamSchema, req.params);
-    const { role, page = 1, limit = 10 } = parseRequest(
-      classUsersQuerySchema,
-      req.query
-    );
+    try {
+      const { id: classId } = parseRequest(classIdParamSchema, req.params);
+      const {
+        role,
+        page = 1,
+        limit = 10,
+      } = parseRequest(classUsersQuerySchema, req.query);
 
-    const currentPage = Math.max(1, +page);
-    const limitPerPage = Math.max(1, +limit);
-    const offset = (currentPage - 1) * limitPerPage;
+      const currentPage = Math.max(1, +page);
+      const limitPerPage = Math.max(1, +limit);
+      const offset = (currentPage - 1) * limitPerPage;
 
-    const baseSelect = {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      emailVerified: user.emailVerified,
-      image: user.image,
-      role: user.role,
-      imageCldPubId: user.imageCldPubId,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
-    };
+      const baseSelect = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        emailVerified: user.emailVerified,
+        image: user.image,
+        role: user.role,
+        imageCldPubId: user.imageCldPubId,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      };
 
-    const groupByFields = [
-      user.id,
-      user.name,
-      user.email,
-      user.emailVerified,
-      user.image,
-      user.role,
-      user.imageCldPubId,
-      user.createdAt,
-      user.updatedAt,
-    ];
+      const groupByFields = [
+        user.id,
+        user.name,
+        user.email,
+        user.emailVerified,
+        user.image,
+        user.role,
+        user.imageCldPubId,
+        user.createdAt,
+        user.updatedAt,
+      ];
 
-    const countResult =
-      role === "teacher"
-        ? await db
-            .select({ count: sql<number>`count(distinct ${user.id})` })
-            .from(user)
-            .leftJoin(classes, eq(user.id, classes.teacherId))
-            .where(and(eq(user.role, role), eq(classes.id, classId)))
-        : await db
-            .select({ count: sql<number>`count(distinct ${user.id})` })
-            .from(user)
-            .leftJoin(enrollments, eq(user.id, enrollments.studentId))
-            .where(and(eq(user.role, role), eq(enrollments.classId, classId)));
+      const countResult =
+        role === "teacher"
+          ? await db
+              .select({ count: sql<number>`count(distinct ${user.id})` })
+              .from(user)
+              .leftJoin(classes, eq(user.id, classes.teacherId))
+              .where(and(eq(user.role, role), eq(classes.id, classId)))
+          : await db
+              .select({ count: sql<number>`count(distinct ${user.id})` })
+              .from(user)
+              .leftJoin(enrollments, eq(user.id, enrollments.studentId))
+              .where(
+                and(eq(user.role, role), eq(enrollments.classId, classId))
+              );
 
-    const totalCount = countResult[0]?.count ?? 0;
+      const totalCount = countResult[0]?.count ?? 0;
 
-    const usersList =
-      role === "teacher"
-        ? await db
-            .select(baseSelect)
-            .from(user)
-            .leftJoin(classes, eq(user.id, classes.teacherId))
-            .where(and(eq(user.role, role), eq(classes.id, classId)))
-            .groupBy(...groupByFields)
-            .orderBy(desc(user.createdAt))
-            .limit(limitPerPage)
-            .offset(offset)
-        : await db
-            .select(baseSelect)
-            .from(user)
-            .leftJoin(enrollments, eq(user.id, enrollments.studentId))
-            .where(and(eq(user.role, role), eq(enrollments.classId, classId)))
-            .groupBy(...groupByFields)
-            .orderBy(desc(user.createdAt))
-            .limit(limitPerPage)
-            .offset(offset);
+      const usersList =
+        role === "teacher"
+          ? await db
+              .select(baseSelect)
+              .from(user)
+              .leftJoin(classes, eq(user.id, classes.teacherId))
+              .where(and(eq(user.role, role), eq(classes.id, classId)))
+              .groupBy(...groupByFields)
+              .orderBy(desc(user.createdAt))
+              .limit(limitPerPage)
+              .offset(offset)
+          : await db
+              .select(baseSelect)
+              .from(user)
+              .leftJoin(enrollments, eq(user.id, enrollments.studentId))
+              .where(and(eq(user.role, role), eq(enrollments.classId, classId)))
+              .groupBy(...groupByFields)
+              .orderBy(desc(user.createdAt))
+              .limit(limitPerPage)
+              .offset(offset);
 
-    res.status(200).json({
-      data: usersList,
-      pagination: {
-        page: currentPage,
-        limit: limitPerPage,
-        total: totalCount,
-        totalPages: Math.ceil(totalCount / limitPerPage),
-      },
-    });
-  } catch (error) {
-    console.error("GET /classes/:id/users error:", error);
-    res.status(500).json({ error: "Failed to fetch class users" });
+      res.status(200).json({
+        data: usersList,
+        pagination: {
+          page: currentPage,
+          limit: limitPerPage,
+          total: totalCount,
+          totalPages: Math.ceil(totalCount / limitPerPage),
+        },
+      });
+    } catch (error) {
+      console.error("GET /classes/:id/users error:", error);
+      res.status(500).json({ error: "Failed to fetch class users" });
+    }
   }
-});
+);
 
 // Get class by ID
 router.get(
@@ -213,21 +220,22 @@ router.get(
   authenticate,
   authorizeRoles("admin", "teacher", "student"),
   async (req, res) => {
-  try {
-    const { id: classId } = parseRequest(classIdParamSchema, req.params);
+    try {
+      const { id: classId } = parseRequest(classIdParamSchema, req.params);
 
-    const classRecord = await getClassById(classId);
+      const classRecord = await getClassById(classId);
 
-    if (!classRecord) {
-      return res.status(404).json({ error: "Class not found" });
+      if (!classRecord) {
+        return res.status(404).json({ error: "Class not found" });
+      }
+
+      res.status(200).json({ data: classRecord });
+    } catch (error) {
+      console.error("GET /classes/:id error:", error);
+      res.status(500).json({ error: "Failed to fetch class" });
     }
-
-    res.status(200).json({ data: classRecord });
-  } catch (error) {
-    console.error("GET /classes/:id error:", error);
-    res.status(500).json({ error: "Failed to fetch class" });
   }
-});
+);
 
 // Create class
 router.post(
@@ -235,69 +243,70 @@ router.post(
   authenticate,
   authorizeRoles("admin", "teacher"),
   async (req, res) => {
-  try {
-    const {
-      subjectId,
-      name,
-      teacherId,
-      bannerCldPubId,
-      bannerUrl,
-      capacity,
-      description,
-      status,
-    } = parseRequest(classCreateSchema, req.body);
-
-    const subject = await getSubjectById(subjectId);
-    if (!subject) {
-      return res.status(404).json({ error: "Subject not found" });
-    }
-
-    const teacher = await getUserById(teacherId);
-    if (!teacher) return res.status(404).json({ error: "Teacher not found" });
-
-    let inviteCode: string | undefined;
-    for (let attempt = 0; attempt < 5; attempt += 1) {
-      const candidate = Math.random().toString(36).substring(2, 9);
-      const existingInvite = await getClassByInviteCode(candidate);
-      if (!existingInvite) {
-        inviteCode = candidate;
-        break;
-      }
-    }
-
-    if (!inviteCode) {
-      return res
-        .status(500)
-        .json({ error: "Failed to generate invite code" });
-    }
-
-    const [createdClass] = await db
-      .insert(classes)
-      .values({
+    try {
+      const {
         subjectId,
-        inviteCode,
         name,
         teacherId,
         bannerCldPubId,
         bannerUrl,
         capacity,
         description,
-        schedules: [],
         status,
-      })
-      .returning({ id: classes.id });
+      } = parseRequest(classCreateSchema, req.body);
 
-    if (!createdClass)
-      return res.status(500).json({ error: "Failed to create class" });
+      const subject = await getSubjectById(subjectId);
+      if (!subject) {
+        return res.status(404).json({ error: "Subject not found" });
+      }
 
-    const classRecord = await getClassById(createdClass.id);
+      const teacher = await getUserById(teacherId);
+      if (!teacher) return res.status(404).json({ error: "Teacher not found" });
 
-    res.status(201).json({ data: classRecord });
-  } catch (error) {
-    console.error("POST /classes error:", error);
-    res.status(500).json({ error: "Failed to create class" });
+      let inviteCode: string | undefined;
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        const candidate = Math.random().toString(36).substring(2, 9);
+        const existingInvite = await getClassByInviteCode(candidate);
+        if (!existingInvite) {
+          inviteCode = candidate;
+          break;
+        }
+      }
+
+      if (!inviteCode) {
+        return res
+          .status(500)
+          .json({ error: "Failed to generate invite code" });
+      }
+
+      const [createdClass] = await db
+        .insert(classes)
+        .values({
+          subjectId,
+          inviteCode,
+          name,
+          teacherId,
+          bannerCldPubId,
+          bannerUrl,
+          capacity,
+          description,
+          schedules: [],
+          status,
+        })
+        .returning({ id: classes.id });
+
+      if (!createdClass)
+        return res.status(500).json({ error: "Failed to create class" });
+
+      const classRecord = await getClassById(createdClass.id);
+
+      res.status(201).json({ data: classRecord });
+    } catch (error) {
+      console.error("POST /classes error:", error);
+      res.status(500).json({ error: "Failed to create class" });
+    }
   }
-});
+);
 
 // Update class
 router.put(
@@ -305,62 +314,64 @@ router.put(
   authenticate,
   authorizeRoles("admin", "teacher"),
   async (req, res) => {
-  try {
-    const { id: classId } = parseRequest(classIdParamSchema, req.params);
-    const {
-      subjectId,
-      inviteCode,
-      bannerCldPubId,
-      bannerUrl,
-      capacity,
-      description,
-      name,
-      schedules,
-      status,
-    } = parseRequest(classUpdateSchema, req.body);
+    try {
+      const { id: classId } = parseRequest(classIdParamSchema, req.params);
+      const {
+        subjectId,
+        inviteCode,
+        bannerCldPubId,
+        bannerUrl,
+        capacity,
+        description,
+        name,
+        schedules,
+        status,
+      } = parseRequest(classUpdateSchema, req.body);
 
-    const existingClass = await getClassById(classId);
-    if (!existingClass)
-      return res.status(404).json({ error: "Class not found" });
+      const existingClass = await getClassById(classId);
+      if (!existingClass)
+        return res.status(404).json({ error: "Class not found" });
 
-    if (subjectId) {
-      const subject = await getSubjectById(subjectId);
-      if (!subject) return res.status(404).json({ error: "Subject not found" });
+      if (subjectId) {
+        const subject = await getSubjectById(subjectId);
+        if (!subject)
+          return res.status(404).json({ error: "Subject not found" });
+      }
+
+      if (inviteCode) {
+        const existingInvite = await getClassByInviteCode(inviteCode);
+
+        if (existingInvite && existingInvite.id !== classId)
+          return res.status(409).json({ error: "Invite code already exists" });
+      }
+
+      const updateValues: Record<string, unknown> = {};
+
+      for (const [key, value] of Object.entries({
+        subjectId,
+        inviteCode,
+        bannerCldPubId,
+        bannerUrl,
+        capacity,
+        description,
+        name,
+        schedules,
+        status,
+      })) {
+        if (value) updateValues[key] = value;
+      }
+
+      await db.update(classes).set(updateValues).where(eq(classes.id, classId));
+
+      const classRecord = await getClassById(classId);
+
+      res.status(200).json({ data: classRecord });
+    } catch (error) {
+      console.error("PUT /classes/:id error:", error);
+      res.status(500).json({ error: "Failed to update class" });
     }
-
-    if (inviteCode) {
-      const existingInvite = await getClassByInviteCode(inviteCode);
-
-      if (existingInvite && existingInvite.id !== classId)
-        return res.status(409).json({ error: "Invite code already exists" });
-    }
-
-    const updateValues: Record<string, unknown> = {};
-
-    for (const [key, value] of Object.entries({
-      subjectId,
-      inviteCode,
-      bannerCldPubId,
-      bannerUrl,
-      capacity,
-      description,
-      name,
-      schedules,
-      status,
-    })) {
-      if (value) updateValues[key] = value;
-    }
-
-    await db.update(classes).set(updateValues).where(eq(classes.id, classId));
-
-    const classRecord = await getClassById(classId);
-
-    res.status(200).json({ data: classRecord });
-  } catch (error) {
-    console.error("PUT /classes/:id error:", error);
-    res.status(500).json({ error: "Failed to update class" });
   }
-});
+);
 
 // Delete class
 router.delete(
@@ -368,22 +379,23 @@ router.delete(
   authenticate,
   authorizeRoles("admin", "teacher"),
   async (req, res) => {
-  try {
-    const { id: classId } = parseRequest(classIdParamSchema, req.params);
+    try {
+      const { id: classId } = parseRequest(classIdParamSchema, req.params);
 
-    const deletedRows = await db
-      .delete(classes)
-      .where(eq(classes.id, classId))
-      .returning({ id: classes.id });
+      const deletedRows = await db
+        .delete(classes)
+        .where(eq(classes.id, classId))
+        .returning({ id: classes.id });
 
-    if (deletedRows.length === 0)
-      return res.status(404).json({ error: "Class not found" });
+      if (deletedRows.length === 0)
+        return res.status(404).json({ error: "Class not found" });
 
-    res.status(200).json({ message: "Class deleted" });
-  } catch (error) {
-    console.error("DELETE /classes/:id error:", error);
-    res.status(500).json({ error: "Failed to delete class" });
+      res.status(200).json({ message: "Class deleted" });
+    } catch (error) {
+      console.error("DELETE /classes/:id error:", error);
+      res.status(500).json({ error: "Failed to delete class" });
+    }
   }
-});
+);
 
 export default router;

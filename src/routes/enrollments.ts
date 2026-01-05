@@ -63,7 +63,7 @@ router.get(
         .select()
         .from(enrollments)
         .where(whereClause)
-        .orderBy(desc(enrollments.enrolledAt))
+        .orderBy(desc(enrollments.createdAt))
         .limit(limitPerPage)
         .offset(offset);
 

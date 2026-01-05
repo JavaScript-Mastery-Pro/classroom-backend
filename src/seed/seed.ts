@@ -1,61 +1,80 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { inArray } from "drizzle-orm";
 
 import { db } from "../db";
-import { departments, subjects, classes, enrollments } from "../db/schema";
-import { user } from "../db/schema/auth";
+import {
+  account,
+  classes,
+  departments,
+  enrollments,
+  session,
+  subjects,
+  user,
+} from "../db/schema";
+
+type SeedUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: "student" | "teacher" | "admin";
+  password: string;
+  image: string;
+};
+
+type SeedDepartment = {
+  code: string;
+  name: string;
+  description: string;
+};
+
+type SeedSubject = {
+  code: string;
+  name: string;
+  description: string;
+  departmentCode: string;
+};
+
+type SeedClass = {
+  name: string;
+  description: string;
+  capacity: number;
+  status: "active" | "inactive" | "archived";
+  inviteCode: string;
+  subjectCode: string;
+  teacherId: string;
+  bannerUrl: string;
+};
+
+type SeedEnrollment = {
+  classInviteCode: string;
+  studentId: string;
+};
 
 type SeedData = {
-  departments: Array<{
-    code: string;
-    name: string;
-    description?: string | null;
-  }>;
-  subjects: Array<{
-    code: string;
-    name: string;
-    description?: string | null;
-    departmentCode: string;
-  }>;
-  users: Array<{
-    id: string;
-    name: string;
-    email: string;
-    emailVerified?: boolean;
-    image?: string | null;
-    imageCldPubId?: string | null;
-    role?: "admin" | "teacher" | "student";
-  }>;
-  classes: Array<{
-    name: string;
-    inviteCode: string;
-    subjectCode: string;
-    teacherId: string;
-    description?: string | null;
-    bannerUrl?: string | null;
-    bannerCldPubId?: string | null;
-    capacity?: number;
-    status?: "active" | "inactive" | "archived";
-    schedules?: Array<{
-      day: string;
-      startTime: string;
-      endTime: string;
-    }>;
-  }>;
-  enrollments: Array<{
-    classInviteCode: string;
-    studentId: string;
-  }>;
+  users: SeedUser[];
+  departments: SeedDepartment[];
+  subjects: SeedSubject[];
+  classes: SeedClass[];
+  enrollments: SeedEnrollment[];
 };
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const loadSeedData = async (): Promise<SeedData> => {
-  const filePath = path.join(__dirname, "data.json");
-  const fileContents = await readFile(filePath, "utf8");
-  return JSON.parse(fileContents) as SeedData;
+  const dataPath = path.join(__dirname, "data.json");
+  const raw = await readFile(dataPath, "utf-8");
+  return JSON.parse(raw) as SeedData;
+};
+
+const ensureMapValue = <T>(map: Map<string, T>, key: string, label: string) => {
+  const value = map.get(key);
+  if (!value) {
+    throw new Error(`Missing ${label} for key: ${key}`);
+  }
+  return value;
 };
 
 const seed = async () => {
@@ -65,89 +84,131 @@ const seed = async () => {
   await db.delete(classes);
   await db.delete(subjects);
   await db.delete(departments);
+  await db.delete(session);
+  await db.delete(account);
   await db.delete(user);
 
-  const departmentRows = await db
-    .insert(departments)
-    .values(
-      data.departments.map((department) => ({
-        code: department.code,
-        name: department.name,
-        description: department.description ?? null,
-      }))
-    )
-    .returning({ id: departments.id, code: departments.code });
+  if (data.users.length) {
+    await db
+      .insert(user)
+      .values(
+        data.users.map((seedUser) => ({
+          id: seedUser.id,
+          name: seedUser.name,
+          email: seedUser.email,
+          emailVerified: true,
+          image: seedUser.image,
+          role: seedUser.role,
+        }))
+      )
+      .onConflictDoNothing({ target: user.id });
 
-  const departmentIdByCode = new Map(
-    departmentRows.map((department) => [department.code, department.id])
-  );
-
-  const subjectRows = await db
-    .insert(subjects)
-    .values(
-      data.subjects.map((subject) => ({
-        code: subject.code,
-        name: subject.name,
-        description: subject.description ?? null,
-        departmentId: departmentIdByCode.get(subject.departmentCode)!,
-      }))
-    )
-    .returning({ id: subjects.id, code: subjects.code });
-
-  const subjectIdByCode = new Map(
-    subjectRows.map((subject) => [subject.code, subject.id])
-  );
-
-  await db
-    .insert(user)
-    .values(
-      data.users.map((seedUser) => ({
-        id: seedUser.id,
-        name: seedUser.name,
-        email: seedUser.email,
-        emailVerified: seedUser.emailVerified ?? false,
-        image: seedUser.image ?? null,
-        imageCldPubId: seedUser.imageCldPubId ?? null,
-        role: seedUser.role ?? "student",
-      }))
-    )
-    .returning({ id: user.id });
-
-  const classRows = await db
-    .insert(classes)
-    .values(
-      data.classes.map((classItem) => ({
-        name: classItem.name,
-        inviteCode: classItem.inviteCode,
-        subjectId: subjectIdByCode.get(classItem.subjectCode)!,
-        teacherId: classItem.teacherId,
-        description: classItem.description ?? null,
-        bannerUrl: classItem.bannerUrl ?? null,
-        bannerCldPubId: classItem.bannerCldPubId ?? null,
-        capacity: classItem.capacity ?? 50,
-        status: classItem.status ?? "active",
-        schedules: classItem.schedules ?? [],
-      }))
-    )
-    .returning({ id: classes.id, inviteCode: classes.inviteCode });
-
-  const classIdByInvite = new Map(
-    classRows.map((classItem) => [classItem.inviteCode, classItem.id])
-  );
-
-  if (data.enrollments.length > 0) {
-    await db.insert(enrollments).values(
-      data.enrollments.map((enrollment) => ({
-        classId: classIdByInvite.get(enrollment.classInviteCode)!,
-        studentId: enrollment.studentId,
-      }))
-    );
+    await db
+      .insert(account)
+      .values(
+        data.users.map((seedUser) => ({
+          id: `acc_${seedUser.id}`,
+          userId: seedUser.id,
+          accountId: seedUser.email,
+          providerId: "credentials",
+          password: seedUser.password,
+        }))
+      )
+      .onConflictDoNothing({ target: [account.providerId, account.accountId] });
   }
 
-  console.log("Seed completed.");
+  if (data.departments.length) {
+    await db
+      .insert(departments)
+      .values(
+        data.departments.map((dept) => ({
+          code: dept.code,
+          name: dept.name,
+          description: dept.description,
+        }))
+      )
+      .onConflictDoNothing({ target: departments.code });
+  }
+
+  const departmentCodes = data.departments.map((dept) => dept.code);
+  const departmentRows =
+    departmentCodes.length === 0
+      ? []
+      : await db
+          .select({ id: departments.id, code: departments.code })
+          .from(departments)
+          .where(inArray(departments.code, departmentCodes));
+  const departmentMap = new Map(
+    departmentRows.map((row) => [row.code, row.id])
+  );
+
+  if (data.subjects.length) {
+    const subjectsToInsert = data.subjects.map((subject) => ({
+      code: subject.code,
+      name: subject.name,
+      description: subject.description,
+      departmentId: ensureMapValue(
+        departmentMap,
+        subject.departmentCode,
+        "department"
+      ),
+    }));
+
+    await db
+      .insert(subjects)
+      .values(subjectsToInsert)
+      .onConflictDoNothing({ target: subjects.code });
+  }
+
+  const subjectCodes = data.subjects.map((subject) => subject.code);
+  const subjectRows =
+    subjectCodes.length === 0
+      ? []
+      : await db
+          .select({ id: subjects.id, code: subjects.code })
+          .from(subjects)
+          .where(inArray(subjects.code, subjectCodes));
+  const subjectMap = new Map(subjectRows.map((row) => [row.code, row.id]));
+
+  if (data.classes.length) {
+    const classesToInsert = data.classes.map((classItem) => ({
+      name: classItem.name,
+      description: classItem.description,
+      capacity: classItem.capacity,
+      status: classItem.status,
+      inviteCode: classItem.inviteCode,
+      subjectId: ensureMapValue(subjectMap, classItem.subjectCode, "subject"),
+      teacherId: classItem.teacherId,
+      bannerUrl: classItem.bannerUrl,
+      bannerCldPubId: null,
+      schedules: [],
+    }));
+
+    await db
+      .insert(classes)
+      .values(classesToInsert)
+      .onConflictDoNothing({ target: classes.inviteCode });
+  }
+
+  const classInviteCodes = data.classes.map(
+    (classItem) => classItem.inviteCode
+  );
+  const classRows =
+    classInviteCodes.length === 0
+      ? []
+      : await db
+          .select({ id: classes.id, inviteCode: classes.inviteCode })
+          .from(classes)
+          .where(inArray(classes.inviteCode, classInviteCodes));
+  const classMap = new Map(classRows.map((row) => [row.inviteCode, row.id]));
 };
 
-seed().catch((error) => {
-  console.error("Seed failed:", error);
-  process.exitCode = 1;
-});
+seed()
+  .then(() => {
+    console.log("Seed completed.");
+    process.exit(0);
+  })
+  .catch((error) => {
+    console.error("Seed failed:", error);
+    process.exit(1);
+  });
