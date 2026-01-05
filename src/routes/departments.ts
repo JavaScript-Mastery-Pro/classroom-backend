@@ -1,14 +1,14 @@
 import express from "express";
 import { and, desc, eq, getTableColumns, ilike, or, sql } from "drizzle-orm";
 
-import { db } from "../db";
+import { db } from "../db/index.js";
 import {
   classes,
   departments,
   enrollments,
   subjects,
   user,
-} from "../db/schema";
+} from "../db/schema/index.js";
 
 const router = express.Router();
 
