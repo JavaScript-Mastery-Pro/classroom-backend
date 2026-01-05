@@ -5,6 +5,8 @@ import { toNodeHandler } from "better-auth/node";
 import subjectsRouter from "./routes/subjects";
 import usersRouter from "./routes/users";
 import classesRouter from "./routes/classes";
+import departmentsRouter from "./routes/departments";
+import statsRouter from "./routes/stats";
 
 // import securityMiddleware from "./middleware/security";
 import { auth } from "./lib/auth";
@@ -29,6 +31,8 @@ app.use(express.json());
 app.use("/api/subjects", subjectsRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/classes", classesRouter);
+app.use("/api/departments", departmentsRouter);
+app.use("/api/stats", statsRouter);
 
 app.get("/", (req, res) => {
   res.send("Backend server is running!");
