@@ -9,7 +9,7 @@ import { statsLatestQuerySchema } from "../validation/stats";
 
 const router = express.Router();
 
-router.use(authenticate, authorizeRoles("admin", "teacher", "student"));
+router.use(authenticate /*, authorizeRoles("admin", "teacher", "student") */);
 
 // Overview counts for core entities
 router.get("/overview", async (_req, res) => {

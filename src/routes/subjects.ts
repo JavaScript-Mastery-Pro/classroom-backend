@@ -21,7 +21,7 @@ const router = express.Router();
 router.get(
   "/",
   authenticate,
-  authorizeRoles("admin", "teacher", "student"),
+  /* authorizeRoles("admin", "teacher", "student"), */
   async (req, res) => {
   try {
     const { search, department, page = 1, limit = 10 } = req.query;
@@ -91,7 +91,7 @@ router.get(
 router.get(
   "/:id",
   authenticate,
-  authorizeRoles("admin", "teacher", "student"),
+  /* authorizeRoles("admin", "teacher", "student"), */
   async (req, res) => {
   try {
     const { id: subjectId } = parseRequest(subjectIdParamSchema, req.params);
@@ -125,7 +125,7 @@ router.get(
 router.post(
   "/",
   authenticate,
-  authorizeRoles("admin", "teacher"),
+  /* authorizeRoles("admin", "teacher"), */
   async (req, res) => {
   try {
     const { departmentId, name, code, description } = parseRequest(
@@ -168,7 +168,7 @@ router.post(
 router.put(
   "/:id",
   authenticate,
-  authorizeRoles("admin", "teacher"),
+  /* authorizeRoles("admin", "teacher"), */
   async (req, res) => {
   try {
     const { id: subjectId } = parseRequest(subjectIdParamSchema, req.params);
@@ -224,7 +224,7 @@ router.put(
 router.get(
   "/:id/classes",
   authenticate,
-  authorizeRoles("admin", "teacher", "student"),
+  /* authorizeRoles("admin", "teacher", "student"), */
   async (req, res) => {
   try {
     const { id: subjectId } = parseRequest(subjectIdParamSchema, req.params);
@@ -277,7 +277,7 @@ router.get(
 router.get(
   "/:id/users",
   authenticate,
-  authorizeRoles("admin", "teacher", "student"),
+  /* authorizeRoles("admin", "teacher", "student"), */
   async (req, res) => {
   try {
     const { id: subjectId } = parseRequest(subjectIdParamSchema, req.params);
@@ -371,7 +371,7 @@ router.get(
 router.delete(
   "/:id",
   authenticate,
-  authorizeRoles("admin", "teacher"),
+  /* authorizeRoles("admin", "teacher"), */
   async (req, res) => {
   try {
     const { id: subjectId } = parseRequest(subjectIdParamSchema, req.params);

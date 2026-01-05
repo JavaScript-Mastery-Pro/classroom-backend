@@ -24,7 +24,7 @@ const router = express.Router();
 router.get(
   "/",
   authenticate,
-  authorizeRoles("admin", "teacher", "student"),
+  /* authorizeRoles("admin", "teacher", "student"), */
   async (req, res) => {
     try {
       const { search, page = 1, limit = 10 } = parseRequest(
@@ -90,7 +90,7 @@ router.get(
 router.get(
   "/:id",
   authenticate,
-  authorizeRoles("admin", "teacher", "student"),
+  /* authorizeRoles("admin", "teacher", "student"), */
   async (req, res) => {
     try {
       const { id: departmentId } = parseRequest(
@@ -153,7 +153,7 @@ router.get(
 router.get(
   "/:id/subjects",
   authenticate,
-  authorizeRoles("admin", "teacher", "student"),
+  /* authorizeRoles("admin", "teacher", "student"), */
   async (req, res) => {
     try {
       const { id: departmentId } = parseRequest(
@@ -205,7 +205,7 @@ router.get(
 router.get(
   "/:id/classes",
   authenticate,
-  authorizeRoles("admin", "teacher", "student"),
+  /* authorizeRoles("admin", "teacher", "student"), */
   async (req, res) => {
     try {
       const { id: departmentId } = parseRequest(
@@ -266,7 +266,7 @@ router.get(
 router.get(
   "/:id/users",
   authenticate,
-  authorizeRoles("admin", "teacher", "student"),
+  /* authorizeRoles("admin", "teacher", "student"), */
   async (req, res) => {
     try {
       const { id: departmentId } = parseRequest(
@@ -387,7 +387,7 @@ router.get(
 router.post(
   "/",
   authenticate,
-  authorizeRoles("admin"),
+  /* authorizeRoles("admin"), */
   async (req, res) => {
     try {
       const { name, code, description } = parseRequest(
@@ -427,7 +427,7 @@ router.post(
 router.put(
   "/:id",
   authenticate,
-  authorizeRoles("admin"),
+  /* authorizeRoles("admin"), */
   async (req, res) => {
     try {
       const { id: departmentId } = parseRequest(
@@ -480,7 +480,7 @@ router.put(
 router.delete(
   "/:id",
   authenticate,
-  authorizeRoles("admin"),
+  /* authorizeRoles("admin"), */
   async (req, res) => {
     try {
       const { id: departmentId } = parseRequest(

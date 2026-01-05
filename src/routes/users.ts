@@ -17,7 +17,7 @@ import {
 
 const router = express.Router();
 
-router.use(authenticate, authorizeRoles("admin"));
+router.use(authenticate /*, authorizeRoles("admin") */);
 
 // Get all users with optional role filter, search by name, and pagination
 router.get("/", async (req, res) => {
