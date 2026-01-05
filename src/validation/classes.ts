@@ -36,7 +36,6 @@ export const classListQuerySchema = z
 export const classCreateSchema = z
   .object({
     name: z.string().trim().min(1),
-    inviteCode: z.string().trim().min(1),
     subjectId: z.coerce.number().int().positive(),
     teacherId: z.string().trim().min(1),
     description: z.string().trim().optional().nullable(),
@@ -44,7 +43,14 @@ export const classCreateSchema = z
     bannerCldPubId: z.string().trim().optional().nullable(),
     capacity: z.coerce.number().int().min(1).optional(),
     status: z.enum(classStatusEnum.enumValues).optional(),
-    schedules: z.array(scheduleSchema).optional(),
+  })
+  .strict();
+
+export const classUsersQuerySchema = z
+  .object({
+    role: z.enum(["teacher", "student"] as const),
+    page: z.coerce.number().int().min(1).optional(),
+    limit: z.coerce.number().int().min(1).max(100).optional(),
   })
   .strict();
 

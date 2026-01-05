@@ -2,7 +2,7 @@ import express from "express";
 import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
 
 import { db } from "../db";
-import { classes } from "../db/schema";
+import { classes, enrollments, user } from "../db/schema";
 import { getClassById, getClassByInviteCode } from "../controllers/classes";
 import { getSubjectById } from "../controllers/subjects";
 import { getUserById } from "../controllers/users";
@@ -14,6 +14,7 @@ import {
   classInviteParamSchema,
   classListQuerySchema,
   classUpdateSchema,
+  classUsersQuerySchema,
 } from "../validation/classes";
 
 const router = express.Router();
@@ -114,6 +115,98 @@ router.get(
   }
 });
 
+// List users in a class by role with pagination
+router.get(
+  "/:id/users",
+  authenticate,
+  authorizeRoles("admin", "teacher", "student"),
+  async (req, res) => {
+  try {
+    const { id: classId } = parseRequest(classIdParamSchema, req.params);
+    const { role, page = 1, limit = 10 } = parseRequest(
+      classUsersQuerySchema,
+      req.query
+    );
+
+    const currentPage = Math.max(1, +page);
+    const limitPerPage = Math.max(1, +limit);
+    const offset = (currentPage - 1) * limitPerPage;
+
+    const baseSelect = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      emailVerified: user.emailVerified,
+      image: user.image,
+      role: user.role,
+      imageCldPubId: user.imageCldPubId,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+
+    const groupByFields = [
+      user.id,
+      user.name,
+      user.email,
+      user.emailVerified,
+      user.image,
+      user.role,
+      user.imageCldPubId,
+      user.createdAt,
+      user.updatedAt,
+    ];
+
+    const countResult =
+      role === "teacher"
+        ? await db
+            .select({ count: sql<number>`count(distinct ${user.id})` })
+            .from(user)
+            .leftJoin(classes, eq(user.id, classes.teacherId))
+            .where(and(eq(user.role, role), eq(classes.id, classId)))
+        : await db
+            .select({ count: sql<number>`count(distinct ${user.id})` })
+            .from(user)
+            .leftJoin(enrollments, eq(user.id, enrollments.studentId))
+            .where(and(eq(user.role, role), eq(enrollments.classId, classId)));
+
+    const totalCount = countResult[0]?.count ?? 0;
+
+    const usersList =
+      role === "teacher"
+        ? await db
+            .select(baseSelect)
+            .from(user)
+            .leftJoin(classes, eq(user.id, classes.teacherId))
+            .where(and(eq(user.role, role), eq(classes.id, classId)))
+            .groupBy(...groupByFields)
+            .orderBy(desc(user.createdAt))
+            .limit(limitPerPage)
+            .offset(offset)
+        : await db
+            .select(baseSelect)
+            .from(user)
+            .leftJoin(enrollments, eq(user.id, enrollments.studentId))
+            .where(and(eq(user.role, role), eq(enrollments.classId, classId)))
+            .groupBy(...groupByFields)
+            .orderBy(desc(user.createdAt))
+            .limit(limitPerPage)
+            .offset(offset);
+
+    res.status(200).json({
+      data: usersList,
+      pagination: {
+        page: currentPage,
+        limit: limitPerPage,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limitPerPage),
+      },
+    });
+  } catch (error) {
+    console.error("GET /classes/:id/users error:", error);
+    res.status(500).json({ error: "Failed to fetch class users" });
+  }
+});
+
 // Get class by ID
 router.get(
   "/:id",
@@ -145,14 +238,12 @@ router.post(
   try {
     const {
       subjectId,
-      inviteCode,
       name,
       teacherId,
       bannerCldPubId,
       bannerUrl,
       capacity,
       description,
-      schedules,
       status,
     } = parseRequest(classCreateSchema, req.body);
 
@@ -164,9 +255,21 @@ router.post(
     const teacher = await getUserById(teacherId);
     if (!teacher) return res.status(404).json({ error: "Teacher not found" });
 
-    const existingInvite = await getClassByInviteCode(inviteCode);
-    if (existingInvite)
-      return res.status(409).json({ error: "Invite code already exists" });
+    let inviteCode: string | undefined;
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const candidate = Math.random().toString(36).substring(2, 9);
+      const existingInvite = await getClassByInviteCode(candidate);
+      if (!existingInvite) {
+        inviteCode = candidate;
+        break;
+      }
+    }
+
+    if (!inviteCode) {
+      return res
+        .status(500)
+        .json({ error: "Failed to generate invite code" });
+    }
 
     const [createdClass] = await db
       .insert(classes)
@@ -179,7 +282,7 @@ router.post(
         bannerUrl,
         capacity,
         description,
-        schedules,
+        schedules: [],
         status,
       })
       .returning({ id: classes.id });

@@ -1,7 +1,7 @@
 import { eq, getTableColumns } from "drizzle-orm";
 
 import { db } from "../db";
-import { classes, subjects } from "../db/schema";
+import { classes, departments, subjects } from "../db/schema";
 import { user } from "../db/schema/auth";
 
 export const getClassById = async (classId: number) => {
@@ -11,12 +11,16 @@ export const getClassById = async (classId: number) => {
       subject: {
         ...getTableColumns(subjects),
       },
+      department: {
+        ...getTableColumns(departments),
+      },
       teacher: {
         ...getTableColumns(user),
       },
     })
     .from(classes)
     .leftJoin(subjects, eq(classes.subjectId, subjects.id))
+    .leftJoin(departments, eq(subjects.departmentId, departments.id))
     .leftJoin(user, eq(classes.teacherId, user.id))
     .where(eq(classes.id, classId));
 
