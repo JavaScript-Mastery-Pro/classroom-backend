@@ -80,13 +80,13 @@ const ensureMapValue = <T>(map: Map<string, T>, key: string, label: string) => {
 const seed = async () => {
   const data = await loadSeedData();
 
-  await db.delete(enrollments);
-  await db.delete(classes);
-  await db.delete(subjects);
-  await db.delete(departments);
-  await db.delete(session);
-  await db.delete(account);
-  await db.delete(user);
+  // await db.delete(enrollments);
+  // await db.delete(classes);
+  // await db.delete(subjects);
+  // await db.delete(departments);
+  // await db.delete(session);
+  // await db.delete(account);
+  // await db.delete(user);
 
   if (data.users.length) {
     await db
