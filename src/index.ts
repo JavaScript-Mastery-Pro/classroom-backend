@@ -1,6 +1,6 @@
-// Site24x7 APM Insight Initialization
-// import AgentAPI from 'apminsight';
-// AgentAPI.config();
+import('apminsight')
+  .then(({ default: AgentAPI }) => AgentAPI.config())
+  .catch(() => console.log('APM not available in this environment'));
 
 import cors from "cors";
 import express from "express";
