@@ -1,6 +1,6 @@
 // Site24x7 APM Insight Initialization
-import AgentAPI from 'apminsight';
-AgentAPI.config();
+// import AgentAPI from 'apminsight';
+// AgentAPI.config();
 
 import cors from "cors";
 import express from "express";
