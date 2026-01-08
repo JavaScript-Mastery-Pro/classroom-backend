@@ -18,6 +18,7 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "apminsight": "^5.2.1",
     "better-auth": "^1.4.9",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
